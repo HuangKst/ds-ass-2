@@ -90,6 +90,20 @@ export class PhotoAppStack extends cdk.Stack {
         esbuildVersion: '0.24.2'
       }
     });
+
+    const updateStatusFn = new lambdaNodejs.NodejsFunction(this, 'UpdateStatusFn', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      entry: path.join(__dirname, '../lambdas/updateStatus.ts'),
+      handler: 'handler',
+      environment: {
+        TABLE_NAME: imageTable.tableName,
+      },
+      bundling: {
+        forceDockerBundling: false,
+        esbuildVersion: '0.24.2'
+      }
+    });
+    
     
 
 
@@ -125,6 +139,11 @@ export class PhotoAppStack extends cdk.Stack {
         },
       })
     );
+
+    imageTopic.addSubscription(
+      new subs.LambdaSubscription(updateStatusFn)
+    );
+    
     
     
 
@@ -132,6 +151,8 @@ export class PhotoAppStack extends cdk.Stack {
     imageTable.grantWriteData(logImageFn);
     imageBucket.grantDelete(removeImageFn);
     imageTable.grantWriteData(addMetadataFn);
+    imageTable.grantWriteData(updateStatusFn);
+
 
 
 
