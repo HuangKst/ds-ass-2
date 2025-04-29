@@ -4,6 +4,14 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import * as subs from 'aws-cdk-lib/aws-sns-subscriptions';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as eventsources from 'aws-cdk-lib/aws-lambda-event-sources';
+import * as path from 'path';
+
+
+
 export class PhotoAppStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -34,6 +42,25 @@ export class PhotoAppStack extends cdk.Stack {
       },
     });
 
+    //创建 Image Table
+    const imageTable = new dynamodb.Table(this, 'ImageTable', {
+      partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
+    //创建 Log Image Lambda 函数
+    const logImageFn = new lambda.Function(this, 'LogImageFn', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      code: lambda.Code.fromAsset(path.join(__dirname, '../lambdas')),
+      handler: 'logImages.handler',
+      environment: {
+        TABLE_NAME: imageTable.tableName,
+      },
+      timeout: cdk.Duration.seconds(5),
+      memorySize: 128,
+    });
+
+
 
     // SNS ➝ SQS 订阅，过滤非图片文件
     imageTopic.addSubscription(
@@ -46,6 +73,17 @@ export class PhotoAppStack extends cdk.Stack {
         },
       })
     );
+
+    // 从 SQS 拉取消息触发
+    logImageFn.addEventSource(
+      new eventsources.SqsEventSource(logImageQueue, {
+        batchSize: 5,
+        maxBatchingWindow: cdk.Duration.seconds(5),
+      })
+    );
+
+    // 权限：Lambda 可以写 DynamoDB
+    imageTable.grantWriteData(logImageFn);
 
 
 
