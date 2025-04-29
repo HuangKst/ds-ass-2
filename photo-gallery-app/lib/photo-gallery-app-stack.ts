@@ -60,15 +60,19 @@ export class PhotoAppStack extends cdk.Stack {
     });
 
     //创建 Log Image Lambda 函数
-    const logImageFn = new lambda.Function(this, 'LogImageFn', {
+    const logImageFn = new lambdaNodejs.NodejsFunction(this, 'LogImageFn', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      code: lambda.Code.fromAsset(path.join(__dirname, '../lambdas')),
-      handler: 'logImages.handler',
+      entry: path.join(__dirname, '../lambdas/logImages.ts'),
+      handler: 'handler',
       environment: {
         TABLE_NAME: imageTable.tableName,
       },
       timeout: cdk.Duration.seconds(5),
       memorySize: 128,
+      bundling: {
+        forceDockerBundling: false,
+        esbuildVersion: '0.24.2'
+      }
     });
 
     const removeImageFn = new lambdaNodejs.NodejsFunction(this, 'RemoveImageFn', {

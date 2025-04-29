@@ -29,7 +29,10 @@ export const handler: SNSHandler = async (event) => {
         new UpdateItemCommand({
           TableName: process.env.TABLE_NAME!,
           Key: { id: { S: id } },
-          UpdateExpression: `SET ${updateKey} = :v`,
+          UpdateExpression: `SET #attr = :v`,
+          ExpressionAttributeNames: {
+            "#attr": updateKey
+          },
           ExpressionAttributeValues: {
             ":v": { S: value },
           },
