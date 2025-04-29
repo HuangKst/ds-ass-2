@@ -9,6 +9,7 @@ import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as eventsources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as path from 'path';
+import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
 
 
 
@@ -27,6 +28,11 @@ export class PhotoAppStack extends cdk.Stack {
       displayName: 'Image Event Topic',
     });
 
+    // 配置 S3 通知发送到 SNS
+    imageBucket.addEventNotification(
+      s3.EventType.OBJECT_CREATED, 
+      new s3n.SnsDestination(imageTopic)
+    );
 
     //创建 Dead Letter Queue
     const logImageDLQ = new sqs.Queue(this, 'LogImageDLQ', {
@@ -60,17 +66,38 @@ export class PhotoAppStack extends cdk.Stack {
       memorySize: 128,
     });
 
+    const removeImageFn = new lambdaNodejs.NodejsFunction(this, 'RemoveImageFn', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      entry: path.join(__dirname, '../lambdas/removeImage.ts'),
+      handler: 'handler',
+      timeout: cdk.Duration.seconds(5),
+      memorySize: 128,
+      bundling: {
+        forceDockerBundling: false,
+        esbuildVersion: '0.24.2'
+      }
+    });
+
+    const addMetadataFn = new lambdaNodejs.NodejsFunction(this, 'AddMetadataFn', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      entry: path.join(__dirname, '../lambdas/addMetadata.ts'),
+      handler: 'handler',
+      environment: {
+        TABLE_NAME: imageTable.tableName,
+      },
+      bundling: {
+        forceDockerBundling: false,
+        esbuildVersion: '0.24.2'
+      }
+    });
+    
+
 
 
     // SNS ➝ SQS 订阅，过滤非图片文件
     imageTopic.addSubscription(
       new subs.SqsSubscription(logImageQueue, {
         rawMessageDelivery: true,
-        filterPolicy: {
-          suffix: sns.SubscriptionFilter.stringFilter({
-            allowlist: ['.jpeg', '.png'],
-          }),
-        },
       })
     );
 
@@ -82,8 +109,31 @@ export class PhotoAppStack extends cdk.Stack {
       })
     );
 
-    // 权限：Lambda 可以写 DynamoDB
+    removeImageFn.addEventSource(
+      new eventsources.SqsEventSource(logImageDLQ, {
+        batchSize: 5,
+        maxBatchingWindow: cdk.Duration.seconds(5),
+      })
+    );
+
+    imageTopic.addSubscription(
+      new subs.LambdaSubscription(addMetadataFn, {
+        filterPolicy: {
+          metadata_type: sns.SubscriptionFilter.stringFilter({
+            allowlist: ['Caption', 'Date', 'Name'],
+          }),
+        },
+      })
+    );
+    
+    
+
+    // 权限
     imageTable.grantWriteData(logImageFn);
+    imageBucket.grantDelete(removeImageFn);
+    imageTable.grantWriteData(addMetadataFn);
+
+
 
 
 
