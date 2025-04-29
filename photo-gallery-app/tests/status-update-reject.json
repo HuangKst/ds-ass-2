@@ -1,0 +1,8 @@
+{
+  "id": "sample.jpeg",
+  "date": "2025-05-01",
+  "update": {
+    "status": "Reject",
+    "reason": "Blurry image with poor lighting"
+  }
+} 

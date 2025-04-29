@@ -30,12 +30,17 @@ export class PhotoAppStack extends cdk.Stack {
 
     // 配置 S3 通知发送到 SNS
     imageBucket.addEventNotification(
-      s3.EventType.OBJECT_CREATED, 
+      s3.EventType.OBJECT_CREATED,
       new s3n.SnsDestination(imageTopic)
     );
 
     //创建 Dead Letter Queue
     const logImageDLQ = new sqs.Queue(this, 'LogImageDLQ', {
+      receiveMessageWaitTime: cdk.Duration.seconds(5),
+    });
+
+    //创建 Status Update Queue
+    const statusUpdateQueue = new sqs.Queue(this, 'StatusUpdateQueue', {
       receiveMessageWaitTime: cdk.Duration.seconds(5),
     });
 
@@ -103,8 +108,23 @@ export class PhotoAppStack extends cdk.Stack {
         esbuildVersion: '0.24.2'
       }
     });
-    
-    
+
+    const mailerFn = new lambdaNodejs.NodejsFunction(this, 'MailerFn', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      entry: path.join(__dirname, '../lambdas/mailer.ts'),
+      handler: 'handler',
+      environment: {
+        SES_REGION: 'eu-west-1',
+        SES_EMAIL_FROM: '20108869@mail.wit.ie',
+        SES_EMAIL_TO: 'huangzihan.2003@gmail.com',
+      },
+      bundling: {
+        forceDockerBundling: false,
+        esbuildVersion: '0.24.2',
+      },
+    });
+
+
 
 
 
@@ -144,14 +164,34 @@ export class PhotoAppStack extends cdk.Stack {
       new subs.LambdaSubscription(updateStatusFn)
     );
     
+    imageTopic.addSubscription(
+      new subs.LambdaSubscription(mailerFn, {
+        filterPolicy: {
+          metadata_type: sns.SubscriptionFilter.stringFilter({
+            denylist: ['Caption', 'Date', 'Name'],
+          }),
+        },
+      })
+    );
+
+    mailerFn.addToRolePolicy(
+      new cdk.aws_iam.PolicyStatement({
+        actions: ['ses:SendEmail', 'ses:SendRawEmail'],
+        resources: ['*'],
+        effect: cdk.aws_iam.Effect.ALLOW,
+      })
+    );
     
-    
+
+
+
 
     // 权限
     imageTable.grantWriteData(logImageFn);
     imageBucket.grantDelete(removeImageFn);
     imageTable.grantWriteData(addMetadataFn);
     imageTable.grantWriteData(updateStatusFn);
+    
 
 
 
@@ -166,5 +206,17 @@ export class PhotoAppStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'TopicARN', {
       value: imageTopic.topicArn,
     });
+
+    // 将状态更新消息发送到专门的队列
+    updateStatusFn.addEnvironment('STATUS_UPDATE_QUEUE_URL', statusUpdateQueue.queueUrl);
+    statusUpdateQueue.grantSendMessages(updateStatusFn);
+    
+    // 连接 mailerFn 到状态更新队列
+    mailerFn.addEventSource(
+      new eventsources.SqsEventSource(statusUpdateQueue, {
+        batchSize: 5,
+        maxBatchingWindow: cdk.Duration.seconds(5),
+      })
+    );
   }
 }

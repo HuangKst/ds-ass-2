@@ -1,0 +1,58 @@
+# Test Commands
+
+## Application Deployment Output
+```
+Outputs:
+PhotoAppStack.BucketName = photoappstack-imagebucket97210811-ckrha97wkscl
+PhotoAppStack.TopicARN = arn:aws:sns:eu-west-1:209479262118:PhotoAppStack-ImageEventTopic73746663-NUb4SNecpQO3
+Stack ARN:
+arn:aws:cloudformation:eu-west-1:209479262118:stack/PhotoAppStack/96cde090-250e-11f0-b3cc-06119d8a3ab9
+```
+
+## 1. Test Valid Image Upload
+```
+# Upload a valid image file to S3 bucket
+aws s3 cp sample.jpeg s3://photoappstack-imagebucket97210811-ckrha97wkscl/
+```
+
+## 2. Test Invalid File Upload (should be rejected and deleted)
+```
+# Upload an invalid file type to S3 bucket
+aws s3 cp test.txt s3://photoappstack-imagebucket97210811-ckrha97wkscl/
+```
+
+## 3. Test Name Metadata Addition
+```
+# Send name metadata to the SNS topic
+aws sns publish --topic-arn "arn:aws:sns:eu-west-1:209479262118:PhotoAppStack-ImageEventTopic73746663-NUb4SNecpQO3" --message-attributes file://tests/attributes-name.json --message file://tests/metadata-name.json
+```
+
+## 4. Test Caption Metadata Addition
+```
+# Send caption metadata to the SNS topic
+aws sns publish --topic-arn "arn:aws:sns:eu-west-1:209479262118:PhotoAppStack-ImageEventTopic73746663-NUb4SNecpQO3" --message-attributes file://tests/attributes-caption.json --message file://tests/metadata-caption.json
+```
+
+## 5. Test Date Metadata Addition
+```
+# Send date metadata to the SNS topic
+aws sns publish --topic-arn "arn:aws:sns:eu-west-1:209479262118:PhotoAppStack-ImageEventTopic73746663-NUb4SNecpQO3" --message-attributes file://tests/attributes-date.json --message file://tests/metadata-date.json
+```
+
+## 6. Test Status Update (Approval)
+```
+# Send approval status update to the SNS topic
+aws sns publish --topic-arn "arn:aws:sns:eu-west-1:209479262118:PhotoAppStack-ImageEventTopic73746663-NUb4SNecpQO3" --message file://tests/status-update-pass.json
+```
+
+## 7. Test Status Update (Rejection)
+```
+# Send rejection status update to the SNS topic
+aws sns publish --topic-arn "arn:aws:sns:eu-west-1:209479262118:PhotoAppStack-ImageEventTopic73746663-NUb4SNecpQO3" --message file://tests/status-update-reject.json
+```
+
+## Verification Steps
+1. Log into AWS Console to check records in the DynamoDB table
+2. Check CloudWatch log groups for execution logs of each Lambda function
+3. Check your email inbox for status update notifications
+4. Verify that invalid files were correctly deleted from S3 
