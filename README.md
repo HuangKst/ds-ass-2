@@ -2,7 +2,7 @@
 
 __Name:__ Zihan Huang
 
-__Demo__: 
+__Demo__: https://www.youtube.com/watch?v=v1bvn2PWX30
 
 This repository contains the implementation of a skeleton design for an application that manages a photo gallery, illustrated below. The app uses an event-driven architecture and is deployed on the AWS platform using the CDK framework for infrastructure provisioning.
 
