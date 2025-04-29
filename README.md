@@ -6,7 +6,7 @@ __Demo__:
 
 This repository contains the implementation of a skeleton design for an application that manages a photo gallery, illustrated below. The app uses an event-driven architecture and is deployed on the AWS platform using the CDK framework for infrastructure provisioning.
 
-![](./images/arch.png)
+![](./image/arch.jpg)
 
 ### Code Status.
 
@@ -58,48 +58,41 @@ Stack ARN:
 arn:aws:cloudformation:eu-west-1:209479262118:stack/PhotoAppStack/96cde090-250e-11f0-b3cc-06119d8a3ab9
 ```
 
-#### Test Commands
+#### Test Commands (PowerShell format)
 
 1. **Test Valid Image Upload**
-   ```
-   # Upload a valid image file to S3 bucket
-   aws s3 cp sunflower.jpeg s3://photoappstack-imagebucket97210811-ckrha97wkscl/
+   ```powershell
+   aws s3 cp tests/sunflower.jpeg s3://photoappstack-imagebucket97210811-ckrha97wkscl/
    ```
 
 2. **Test Invalid File Upload** (should be rejected and deleted)
-   ```
-   # Upload an invalid file type to S3 bucket
-   aws s3 cp test.txt s3://photoappstack-imagebucket97210811-ckrha97wkscl/
+   ```powershell
+   aws s3 cp tests/test.txt s3://photoappstack-imagebucket97210811-ckrha97wkscl/
    ```
 
 3. **Test Name Metadata Addition**
-   ```
-   # Send name metadata to the SNS topic
-   aws sns publish --topic-arn "arn:aws:sns:eu-west-1:209479262118:PhotoAppStack-ImageEventTopic73746663-NUb4SNecpQO3" --message-attributes file://tests/attributes-name.json --message file://tests/metadata-name.json
+   ```powershell
+   aws sns publish --topic-arn "arn:aws:sns:eu-west-1:209479262118:PhotoAppStack-ImageEventTopic73746663-NUb4SNecpQO3" --message-attributes file://photo-gallery-app/tests/attributes-name.json --message file://photo-gallery-app/tests/metadata-name.json
    ```
 
 4. **Test Caption Metadata Addition**
-   ```
-   # Send caption metadata to the SNS topic
-   aws sns publish --topic-arn "arn:aws:sns:eu-west-1:209479262118:PhotoAppStack-ImageEventTopic73746663-NUb4SNecpQO3" --message-attributes file://tests/attributes-caption.json --message file://tests/metadata-caption.json
+   ```powershell
+   aws sns publish --topic-arn "arn:aws:sns:eu-west-1:209479262118:PhotoAppStack-ImageEventTopic73746663-NUb4SNecpQO3" --message-attributes file://photo-gallery-app/tests/attributes-caption.json --message file://photo-gallery-app/tests/metadata-caption.json
    ```
 
 5. **Test Date Metadata Addition**
-   ```
-   # Send date metadata to the SNS topic
-   aws sns publish --topic-arn "arn:aws:sns:eu-west-1:209479262118:PhotoAppStack-ImageEventTopic73746663-NUb4SNecpQO3" --message-attributes file://tests/attributes-date.json --message file://tests/metadata-date.json
+   ```powershell
+   aws sns publish --topic-arn "arn:aws:sns:eu-west-1:209479262118:PhotoAppStack-ImageEventTopic73746663-NUb4SNecpQO3" --message-attributes file://photo-gallery-app/tests/attributes-date.json --message file://photo-gallery-app/tests/metadata-date.json
    ```
 
 6. **Test Status Update (Approval)**
-   ```
-   # Send approval status update to the SNS topic
-   aws sns publish --topic-arn "arn:aws:sns:eu-west-1:209479262118:PhotoAppStack-ImageEventTopic73746663-NUb4SNecpQO3" --message file://tests/status-update-pass.json
+   ```powershell
+   aws sns publish --topic-arn "arn:aws:sns:eu-west-1:209479262118:PhotoAppStack-ImageEventTopic73746663-NUb4SNecpQO3" --message file://photo-gallery-app/tests/status-update-pass.json
    ```
 
 7. **Test Status Update (Rejection)**
-   ```
-   # Send rejection status update to the SNS topic
-   aws sns publish --topic-arn "arn:aws:sns:eu-west-1:209479262118:PhotoAppStack-ImageEventTopic73746663-NUb4SNecpQO3" --message file://tests/status-update-reject.json
+   ```powershell
+   aws sns publish --topic-arn "arn:aws:sns:eu-west-1:209479262118:PhotoAppStack-ImageEventTopic73746663-NUb4SNecpQO3" --message file://photo-gallery-app/tests/status-update-reject.json
    ```
 
 #### Verification Steps
