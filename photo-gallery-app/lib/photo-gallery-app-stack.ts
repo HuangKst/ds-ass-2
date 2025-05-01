@@ -10,6 +10,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as eventsources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as path from 'path';
 import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
+import { SES_REGION, SES_EMAIL_FROM, SES_EMAIL_TO } from '../env';
 
 
 
@@ -118,9 +119,9 @@ export class PhotoAppStack extends cdk.Stack {
       entry: path.join(__dirname, '../lambdas/mailer.ts'),
       handler: 'handler',
       environment: {
-        SES_REGION: 'eu-west-1',
-        SES_EMAIL_FROM: '20108869@mail.wit.ie',
-        SES_EMAIL_TO: 'huangzihan.2003@gmail.com',
+        SES_REGION: SES_REGION,
+        SES_EMAIL_FROM: SES_EMAIL_FROM,
+        SES_EMAIL_TO: SES_EMAIL_TO,
       },
       bundling: {
         forceDockerBundling: false,
